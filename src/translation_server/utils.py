@@ -3,12 +3,11 @@
 #   "tiktoken"
 # ]
 # ///
-from typing import Tuple
+from typing import Tuple, List
 import tiktoken
 
-def num_tokens_in_string(
-    input_str: str, encoding_name: str = "cl100k_base"
-) -> int:
+
+def num_tokens_in_string(input_str: str, encoding_name: str = "cl100k_base") -> int:
     """
     Calculate the number of tokens in a given string using a specified encoding.
 
@@ -30,18 +29,35 @@ def num_tokens_in_string(
     num_tokens = len(encoding.encode(input_str))
     return num_tokens
 
-def translate(
-        source_lang: str,
-        target_lang: str,
-        source_text: str,
-        country: str ,
-        max_tokens: int,
-): 
+
+def get_translate_prompts(
+    source_lang: str,
+    target_lang: str,
+    source_text: str,
+    country: str,
+    max_tokens: int,
+) -> List[Tuple[str, str]]:
     num_tokens_in_text = num_tokens_in_string(source_text)
 
-    if num_tokens_in_text > max_tokens:
+    # if num_tokens_in_text > max_tokens:
+    return [
+        one_chuck_initial_prompt(source_lang, target_lang, source_text),
+        one_chunk_reflect_on_prompt(
+            source_lang,
+            target_lang,
+            source_text,
+            "{{the translation of previous result}}",
+            country,
+        ),
+        one_chunk_improve_prompt(
+            source_lang,
+            target_lang,
+            source_text,
+            "{{the initial translation}}",
+            "{{the reflection on the previous result}}",
+        ),
+    ]
 
-    else:
 
 def one_chuck_initial_prompt(
     source_lang: str, target_lang: str, source_text: str
@@ -141,3 +157,60 @@ Each suggestion should address one specific part of the translation.
 Output only the suggestions and nothing else."""
 
     return system_message, reflection_prompt
+
+
+def one_chunk_improve_prompt(
+    source_lang: str,
+    target_lang: str,
+    source_text: str,
+    translation_1: str,
+    reflection: str,
+) -> Tuple[str, str]:
+    """
+        Use the reflection to improve the translation, treating the entire text as one chunk.
+
+        Args:
+            source_lang (str): The source language of the text.
+            target_lang (str): The target language for the translation.
+            source_text (str): The original text in the source language.
+            translation_1 (str): The initial translation translation_2 = get_completion(prompt, system_message)
+
+        return translation_2
+    of the source text.
+            reflection (str): Expert suggestions and constructive criticism for improving the translation.
+
+        Returns:
+            Tuple[str, str]: The system message and the improvement prompt.
+    """
+
+    system_message = f"You are an expert linguist, specializing in translation editing from {source_lang} to {target_lang}."
+
+    prompt = f"""Your task is to carefully read, then edit, a translation from {source_lang} to {target_lang}, taking into
+account a list of expert suggestions and constructive criticisms.
+
+The source text, the initial translation, and the expert linguist suggestions are delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT>, <TRANSLATION></TRANSLATION> and <EXPERT_SUGGESTIONS></EXPERT_SUGGESTIONS> \
+as follows:
+
+<SOURCE_TEXT>
+{source_text}
+</SOURCE_TEXT>
+
+<TRANSLATION>
+{translation_1}
+</TRANSLATION>
+
+<EXPERT_SUGGESTIONS>
+{reflection}
+</EXPERT_SUGGESTIONS>
+
+Please take into account the expert suggestions when editing the translation. Edit the translation by ensuring:
+
+(i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),
+(ii) fluency (by applying {target_lang} grammar, spelling and punctuation rules and ensuring there are no unnecessary repetitions), \
+(iii) style (by ensuring the translations reflect the style of the source text)
+(iv) terminology (inappropriate for context, inconsistent use), or
+(v) other errors.
+
+Output only the new translation and nothing else."""
+
+    return system_message, prompt

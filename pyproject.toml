@@ -8,3 +8,7 @@ dependencies = [
     "mcp>=1.1.1",
     "tiktoken>=0.8.0",
 ]
+
+[project.scripts] 
+mcp-translation-server = "translation_server:main"
+
