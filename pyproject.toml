@@ -1,9 +1,9 @@
 [project]
 name = "translation-mcp-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "mcp>=1.1.1",
     "tiktoken>=0.8.0",
@@ -11,4 +11,3 @@ dependencies = [
 
 [project.scripts] 
 mcp-translation-server = "translation_server:main"
-
